@@ -17,4 +17,9 @@ process DESEQ2 {
         --quants . \
         --out differential_expression_summary.csv
     """
+
+    stub:
+    """
+    touch differential_expression_summary.csv
+    """
 }
