@@ -15,4 +15,10 @@ process SALMON_INDEX {
     """
     salmon index -t ${fasta} -i salmon_index -k ${kmer} --threads ${task.cpus}
     """
+
+    stub:
+    """
+    mkdir salmon_index
+    touch salmon_index/info.json
+    """
 }
