@@ -63,11 +63,3 @@ workflow {
     MULTIQC(ch_multiqc_files.collect())
 }
 
-workflow.onComplete {
-    log.info """
-    Pipeline completed at : ${workflow.complete}
-    Execution status     : ${workflow.success ? 'SUCCESS' : 'FAILED'}
-    Duration             : ${workflow.duration}
-    Output directory     : ${params.outdir}
-    """.stripIndent()
-}
