@@ -15,4 +15,12 @@ process FASTQC {
     """
     fastqc -q ${reads}
     """
+
+    stub:
+    """
+    touch ${meta.id}_1_fastqc.html
+    touch ${meta.id}_1_fastqc.zip
+    touch ${meta.id}_2_fastqc.html
+    touch ${meta.id}_2_fastqc.zip
+    """
 }
