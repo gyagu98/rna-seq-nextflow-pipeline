@@ -23,4 +23,10 @@ process SALMON_QUANT {
         --threads ${task.cpus} \
         --validateMappings
     """
+
+    stub:
+    """
+    mkdir -p ${meta.id}
+    touch ${meta.id}/quant.sf
+    """
 }
