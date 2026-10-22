@@ -1,244 +1,98 @@
-# Portable RNA-Seq Analysis Pipeline (Nextflow DSL2)
+# RNA-seq workflow: quantification and optional differential expression
 
-[![CI Pipeline Test](https://github.com/gyagu98/rna-seq-nextflow-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/gyagu98/rna-seq-nextflow-pipeline/actions/workflows/ci.yml)
-[![Nextflow](https://img.shields.io/badge/Nextflow-DSL2-brightgreen.svg)](https://www.nextflow.io/)
-[![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A Nextflow DSL2 portfolio project connecting FastQC, Salmon and MultiQC.
+An optional **two-group, unpaired** analysis imports Salmon estimates with
+tximport and tests gene-level differences with DESeq2.
 
-A reproducible, portable RNA-seq processing and quantification workflow written in **Nextflow DSL2**. The pipeline performs quality control, transcript quantification via Salmon, differential expression aggregation, and comprehensive quality reporting via MultiQC.
+## Status and scope
 
----
+This is a workflow demonstration under validation, not a validated production
+or clinical pipeline. No real-cohort biological findings are claimed.
+The bundled tiny FASTQ fixture has one sample per condition: it exercises
+workflow wiring and quantification only, not differential expression.
+Preview/stub checks do not validate numerical results.
 
-## Workflow Overview
+The previous script labeled DESeq2 only averaged abundances and could emit
+dummy results. It has been replaced; missing inputs now fail explicitly.
 
-```
-                      +-----------------------------+
-                      |   samplesheet.csv (FASTQs)  |
-                      +--------------+--------------+
-                                     |
-               +---------------------+---------------------+
-               |                                           |
-               v                                           v
-     +-------------------+                       +-------------------+
-     |   FastQC (QC)     |                       |  Salmon Indexing  |
-     +---------+---------+                       +---------+---------+
-               |                                           |
-               |                                           v
-               |                                 +-------------------+
-               |                                 |   Salmon Quant    |
-               |                                 +---------+---------+
-               |                                           |
-               |                       +-------------------+-------------------+
-               |                       |                                       |
-               v                       v                                       v
-     +-----------------------------------+                   +-------------------+
-     |        MultiQC Aggregate          |                   |  DESeq2 Analysis  |
-     +-----------------------------------+                   +-------------------+
-```
+## Quantification quick start
 
----
+Install a compatible Nextflow/Java runtime and Docker, or Conda.
+From a clone:
 
-## Features
-
-- **Nextflow DSL2 Modular Design:** Processes are decoupled into reusable components (`modules/fastqc`, `modules/salmon`, `modules/multiqc`, `modules/deseq2`).
-- **Containerization Support:** Out-of-the-box support for **Docker**, **Singularity / Apptainer**, and **Conda** via BioContainers.
-- **Automated CI/CD Testing:** GitHub Actions workflow executes dry-run validation and profile testing on every commit.
-- **Zero-Download Test Fixtures:** Includes self-contained synthetic paired-end FASTQ reads and a miniature transcriptome for instant testing without multi-gigabyte downloads.
-- **HPC & Cloud Ready:** Dynamic resource allocation with error-retry strategies in `conf/base.config`.
-
----
-
-## Setup & Installation
-
-### 1. Prerequisites
-Ensure you have the following installed on your machine or HPC environment:
-- **Java 11 or later**:
-  ```bash
-  java -version
-  ```
-- **Nextflow** (>= 22.10.1):
-  ```bash
-  curl -s https://get.nextflow.io | bash
-  chmod +x nextflow
-  sudo mv nextflow /usr/local/bin/
-  # Verify installation
-  nextflow info
-  ```
-- **Container Engine or Package Manager** (at least one):
-  - [Docker Desktop](https://www.docker.com/) (recommended for local development / macOS / Windows)
-  - [Singularity / Apptainer](https://apptainer.org/) (standard for shared HPC clusters)
-  - [Conda / Mamba](https://github.com/conda-forge/miniforge) (lightweight environments)
-
-### 2. Clone the Repository
-```bash
-git clone https://github.com/gyagu98/rna-seq-nextflow-pipeline.git
-cd rna-seq-nextflow-pipeline
-```
-*(Alternatively, Nextflow can pull and run the repository directly from GitHub without cloning).*
-
----
-
-## Test-Profile Usage
-
-The pipeline includes a self-contained test profile with synthetic paired-end FASTQ reads and a miniature transcriptome in `tests/data/`. This enables zero-download validation of all pipeline components.
-
-### A. Preview / Syntax Validation
-Verify pipeline syntax and channel resolution without launching tasks:
-```bash
-nextflow run main.nf -profile test -preview
-```
-
-### B. Stub Run (Instant DAG & Channel Verification)
-Validate task dependencies, command stubs, and file staging in seconds without container downloads or heavy computation:
 ```bash
 nextflow run main.nf -profile test -stub-run
-```
-
-### C. End-to-End Test Execution
-Execute all processes (FastQC, Salmon Index, Salmon Quant, MultiQC, and DESeq2) with real containers:
-
-```bash
-# With Docker
 nextflow run main.nf -profile test,docker
-
-# With Singularity / Apptainer (HPC)
-nextflow run main.nf -profile test,singularity
-
-# With Conda / Mamba
-nextflow run main.nf -profile test,conda
-
-# Run directly from GitHub without local cloning
-nextflow run gyagu98/rna-seq-nextflow-pipeline -profile test,docker
 ```
 
----
-
-## Running on Your Own RNA-Seq Data
-
-### 1. Prepare your `samplesheet.csv`
-Create a CSV file referencing your paired-end FASTQ reads and experimental conditions:
-
-```csv
-sample,fastq_1,fastq_2,condition
-control_rep1,/data/fastqs/ctrl_1_R1.fastq.gz,/data/fastqs/ctrl_1_R2.fastq.gz,control
-control_rep2,/data/fastqs/ctrl_2_R1.fastq.gz,/data/fastqs/ctrl_2_R2.fastq.gz,control
-treated_rep1,/data/fastqs/treat_1_R1.fastq.gz,/data/fastqs/treat_1_R2.fastq.gz,treated
-treated_rep2,/data/fastqs/treat_2_R1.fastq.gz,/data/fastqs/treat_2_R2.fastq.gz,treated
-```
-
-### 2. Standard Production Execution
-Run the workflow with a reference transcriptome (FASTA) and output directory:
+For your own paired-end reads, supply a CSV with
+`sample,fastq_1,fastq_2,condition`, an appropriate reference transcriptome, and
+a destination:
 
 ```bash
-nextflow run main.nf \
-    --input /path/to/samplesheet.csv \
-    --transcriptome /path/to/reference_transcripts.fa \
-    --outdir ./results \
-    -profile docker
+nextflow run main.nf -profile docker --input samplesheet.csv \
+  --transcriptome transcripts.fa --outdir results
 ```
 
-### 3. Resuming an Interrupted Run
-Nextflow uses deterministic task hashes to cache completed steps. If a run is interrupted or inputs change downstream, resume without recomputing finished tasks:
+Use unique, filesystem-safe sample IDs. Use absolute FASTQ paths for your own
+data. Keep reference accessions, releases and checksums with the study metadata.
+Use `-resume` to reuse completed tasks.
+
+## Optional differential expression
+
+DE currently requires the Conda profile; Docker/Singularity execution of the DE
+stage is not configured. The R environment includes DESeq2 and tximport.
+
+Supply at least two **independent biological replicates** per condition (three
+or more is a better starting point for many studies). Technical replicates do
+not establish biological independence. This implementation supports exactly
+two conditions and the design `~ condition`; it does not handle paired,
+batch-adjusted or other multifactor designs.
+
+Create a tab-separated mapping with the exact header `transcript<TAB>gene`.
+Every transcript in the Salmon tables must map to one gene, using the same
+reference release and exact IDs, including version suffixes.
 
 ```bash
-nextflow run main.nf \
-    --input /path/to/samplesheet.csv \
-    --transcriptome /path/to/reference_transcripts.fa \
-    --outdir ./results \
-    -profile docker \
-    -resume
+nextflow run main.nf -profile conda --input samplesheet.csv \
+  --transcriptome transcripts.fa --run_de true --tx2gene tx2gene.tsv \
+  --reference control --comparison treated --outdir results
 ```
 
-### 4. HPC Cluster Submission (SLURM / SGE)
-When deploying on high-performance computing clusters with Singularity/Apptainer:
+Positive log2 fold changes mean higher expression in comparison versus
+reference. Genes with total estimated count below 10 are removed. DESeq2 uses
+an alpha of 0.05 and BH adjusted p-values; output fold changes are unshrunken.
+NA adjusted p-values must not be counted as significant.
+
+Outputs in `results/deseq2/`:
+- `differential_expression_summary.csv`: gene IDs, effect sizes and statistics.
+- `normalized_counts.csv`: normalized counts for inspection.
+- `PCA.pdf`, `MA_plot.pdf`: exploratory diagnostics.
+- `analysis_session.txt`: contrast, assumptions and package/session versions.
+
+Inspect QC, confounding and sample independence before interpreting results.
+A significant gene is not automatically a validated biomarker.
+
+## Validation
+
+The existing CI checks workflow preview and stubs. The analysis CI separately
+runs real tximport/DESeq2 on synthetic Salmon tables with eight samples and
+500 genes, checks an introduced effect and output artifacts, and verifies
+that missing inputs and absent replication fail without creating results:
 
 ```bash
-nextflow run main.nf \
-    --input /path/to/samplesheet.csv \
-    --transcriptome /path/to/reference_transcripts.fa \
-    --outdir /scratch/project/results \
-    -profile singularity \
-    -with-report execution_report.html \
-    -with-timeline execution_timeline.html \
-    -with-trace execution_trace.txt
+Rscript tests/test_deseq2.R
 ```
 
-### 5. Custom Parameter Overrides
-You can tune index k-mer size or memory/CPU directives via the command line or custom config:
+This tests the R analysis, not the full FASTQ-to-report workflow. A replicated
+public-cohort case study, full real-tool workflow integration, pinned dependency
+resolution, pathway analysis, and measured resource usage remain future work.
+No HPC/cloud execution has been validated here. A container profile alone
+does not configure SLURM or a cloud executor.
 
-```bash
-nextflow run main.nf \
-    --input samplesheet.csv \
-    --transcriptome transcripts.fa \
-    --salmon_kmer 31 \
-    --outdir run_k31_results \
-    -profile docker
-```
+## Methods references
 
-## Pipeline Parameters
+- [tximport documentation](https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html)
+- [DESeq2 documentation](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
 
-| Parameter | Description | Default |
-| :--- | :--- | :--- |
-| `--input` | Path to `samplesheet.csv` | `null` |
-| `--transcriptome` | Path to reference transcriptome FASTA | `null` |
-| `--outdir` | Output results directory | `'results'` |
-| `--salmon_kmer` | K-mer length for Salmon indexing | `21` |
-| `-profile` | Execution profile (`docker`, `singularity`, `conda`, `test`) | `'standard'` |
-
----
-
-## Output Structure
-
-```
-results/
-├── fastqc/
-│   ├── sample1_1_fastqc.html
-│   └── sample1_1_fastqc.zip
-├── salmon_index/
-│   └── (Index binary files)
-├── salmon_quant/
-│   ├── sample1/quant.sf
-│   └── sample2/quant.sf
-├── deseq2/
-│   └── differential_expression_summary.csv
-└── multiqc/
-    └── multiqc_report.html
-```
-
----
-
-## Repository Structure
-
-```
-├── .github/workflows/
-│   └── ci.yml               # GitHub Actions CI workflow
-├── bin/
-│   └── deseq2_analysis.R    # Differential expression script
-├── conf/
-│   ├── base.config          # Computational resource allocations
-│   └── test.config          # Minimal test fixture configuration
-├── modules/
-│   ├── deseq2/main.nf       # DESeq2 module
-│   ├── fastqc/main.nf       # FastQC module
-│   ├── multiqc/main.nf      # MultiQC module
-│   └── salmon/
-│       ├── index.nf         # Salmon index module
-│       └── quant.nf         # Salmon quantification module
-├── tests/
-│   └── data/                # Lightweight test FASTQs and transcriptome
-├── Dockerfile               # Pipeline Docker container definition
-├── environment.yml          # Conda environment definition
-├── main.nf                  # Main workflow execution script
-└── nextflow.config          # Master Nextflow configuration
-```
-
----
-
-## Author & Citation
-
-Developed by **Gretta Y. Rozenberg**  
-Ph.D. Researcher in Computational Biology & Bioinformatics  
-- **GitHub:** [@gyagu98](https://github.com/gyagu98)  
-- **LinkedIn:** [Gretta Rozenberg](https://www.linkedin.com/in/gyagudayeva/)
-
-If you find this pipeline helpful in your research, feel free to star the repository!
+Code: MIT license. Author: Gretta Y. Rozenberg.

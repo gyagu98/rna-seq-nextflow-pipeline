@@ -57,7 +57,16 @@ workflow {
     // 6. Differential Expression (DESeq2)
     ch_quants = SALMON_QUANT.out.results.map { meta, dir -> dir }.collect()
     ch_samplesheet = file(params.input).exists() ? file(params.input) : file("${projectDir}/${params.input}")
-    DESEQ2(ch_quants, ch_samplesheet)
+    if (params.run_de) {
+        if (!workflow.profile.tokenize(',').contains('conda'))
+            error 'DE currently requires -profile conda (or test,conda)'
+        if (!params.tx2gene || !params.reference || !params.comparison)
+            error 'DE requires --tx2gene, --reference and --comparison'
+        if (!(params.reference ==~ /[A-Za-z0-9_.-]+/) || !(params.comparison ==~ /[A-Za-z0-9_.-]+/))
+            error 'Condition names must contain only letters, digits, underscores, dots and hyphens'
+        DESEQ2(ch_quants, ch_samplesheet, file(params.tx2gene, checkIfExists: true),
+               params.reference, params.comparison)
+    }
 
     // 7. Aggregate Quality Control (MultiQC)
     MULTIQC(ch_multiqc_files.collect())
