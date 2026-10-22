@@ -14,4 +14,10 @@ process MULTIQC {
     """
     multiqc .
     """
+
+    stub:
+    """
+    touch multiqc_report.html
+    mkdir multiqc_data
+    """
 }
