@@ -4,7 +4,7 @@ process DESEQ2 {
     container 'rocker/tidyverse:4.3.2'
 
     input:
-    path quant_files
+    path quant_dirs
     path samplesheet
 
     output:
