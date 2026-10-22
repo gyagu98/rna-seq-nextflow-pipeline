@@ -55,7 +55,7 @@ workflow {
     ch_multiqc_files = ch_multiqc_files.mix(SALMON_QUANT.out.results.map { meta, dir -> dir })
 
     // 6. Differential Expression (DESeq2)
-    ch_quants = SALMON_QUANT.out.quant_sf.map { meta, sf -> sf }.collect()
+    ch_quants = SALMON_QUANT.out.results.map { meta, dir -> dir }.collect()
     ch_samplesheet = file(params.input).exists() ? file(params.input) : file("${projectDir}/${params.input}")
     DESEQ2(ch_quants, ch_samplesheet)
 
