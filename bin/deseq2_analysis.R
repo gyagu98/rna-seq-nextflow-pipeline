@@ -44,7 +44,7 @@ suppressPackageStartupMessages({
 })
 samples$condition <- factor(samples$condition, levels=c(reference, comparison))
 rownames(samples) <- samples$sample
-txi <- tximport(files, type="salmon", tx2gene=mapping)
+txi <- tximport(files, type="salmon", tx2gene=mapping, dropInfReps=TRUE)
 dds <- DESeqDataSetFromTximport(txi, colData=samples, design=~condition)
 keep <- rowSums(counts(dds)) >= 10
 if (sum(keep) < 2L) stop("Fewer than two genes pass the total count >=10 filter")
