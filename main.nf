@@ -61,13 +61,15 @@ workflow {
         .splitCsv(header: true)
         .map { row ->
             def meta = [id: row.sample, condition: row.condition]
-            def reads = [file(row.fastq_1, checkIfExists: true), file(row.fastq_2, checkIfExists: true)]
-            return [meta, reads]
+            def r1 = file(row.fastq_1).exists() ? file(row.fastq_1) : file("${projectDir}/${row.fastq_1}")
+            def r2 = file(row.fastq_2).exists() ? file(row.fastq_2) : file("${projectDir}/${row.fastq_2}")
+            return [meta, [r1, r2]]
         }
         .set { ch_reads }
 
     // 2. Reference Transcriptome Channel
-    ch_transcriptome = file(params.transcriptome, checkIfExists: true)
+    def transcriptome_file = file(params.transcriptome).exists() ? file(params.transcriptome) : file("${projectDir}/${params.transcriptome}")
+    ch_transcriptome = Channel.value(transcriptome_file)
 
     // 3. Quality Control (FastQC)
     FASTQC(ch_reads)
@@ -82,7 +84,7 @@ workflow {
 
     // 6. Differential Expression (DESeq2)
     ch_quants = SALMON_QUANT.out.quant_sf.map { meta, sf -> sf }.collect()
-    ch_samplesheet = file(params.input)
+    ch_samplesheet = file(params.input).exists() ? file(params.input) : file("${projectDir}/${params.input}")
     DESEQ2(ch_quants, ch_samplesheet)
 
     // 7. Aggregate Quality Control (MultiQC)
