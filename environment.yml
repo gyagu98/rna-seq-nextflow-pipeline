@@ -1,0 +1,12 @@
+name: rnaseq-nextflow
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  - nextflow>=22.10.1
+  - fastqc=0.12.1
+  - salmon=1.10.2
+  - multiqc=1.21
+  - r-base=4.3.2
