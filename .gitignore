@@ -1,0 +1,9 @@
+.nextflow/
+.nextflow.log*
+work/
+results/
+results_test/
+*.html
+*.zip
+*.tar.gz
+.DS_Store
