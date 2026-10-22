@@ -8,34 +8,6 @@ nextflow.enable.dsl = 2
 ========================================================================================
 */
 
-def helpMessage() {
-    log.info"""
-    Usage:
-      nextflow run gyagu98/rna-seq-nextflow-pipeline [options]
-
-    Mandatory arguments:
-      --input             Path to input samplesheet CSV (columns: sample,fastq_1,fastq_2,condition)
-      --transcriptome     Path to reference transcriptome FASTA
-
-    Optional arguments:
-      --outdir            The output directory where the results will be saved (default: 'results')
-      --salmon_kmer       K-mer length for Salmon indexing (default: 21)
-      -profile            Configuration profile to use: docker, singularity, conda, test (default: 'standard')
-    """.stripIndent()
-}
-
-if (params.help) {
-    helpMessage()
-    exit 0
-}
-
-if (!params.input && !params.test) {
-    exit 1, "ERROR: Please specify an input samplesheet with '--input samplesheet.csv' or run with '-profile test'"
-}
-if (!params.transcriptome && !params.test) {
-    exit 1, "ERROR: Please specify a reference transcriptome with '--transcriptome reference.fasta' or run with '-profile test'"
-}
-
 /*
 ========================================================================================
    IMPORT LOCAL MODULES
