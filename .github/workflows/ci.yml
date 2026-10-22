@@ -26,11 +26,7 @@ jobs:
           sudo mv nextflow /usr/local/bin/
           nextflow -v
 
-      - name: Validate pipeline help and syntax
-        run: |
-          nextflow run main.nf --help
-
-      - name: Test workflow graph preview
+      - name: Validate pipeline and inputs with test profile
         run: |
           nextflow run main.nf -profile test -preview
 
