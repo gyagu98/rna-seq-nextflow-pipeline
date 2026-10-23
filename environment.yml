@@ -10,3 +10,6 @@ dependencies:
   - salmon=1.10.2
   - multiqc=1.21
   - r-base=4.3.2
+
+  - bioconductor-deseq2
+  - bioconductor-tximport
